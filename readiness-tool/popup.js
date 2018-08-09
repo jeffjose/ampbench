@@ -9,16 +9,10 @@ let supportedAds;
 let supportedAnalytics;
 
 /* @const {!Element} */
-let supportedCMS;
-
-/* @const {!Element} */
 let notSupportedAds;
 
 /* @const {!Element} */
 let notSupportedAnalytics;
-
-/* @const {!Element} */
-let notSupportedCMS;
 
 /* @const {string} */
 const loadingMessage = "Loading...";
@@ -36,25 +30,19 @@ chrome.storage.onChanged.addListener(function(changes, namespace) {
 function showLoading() {
   supportedAds = document.getElementById('ads-supported');
   supportedAnalytics = document.getElementById('analytics-supported');
-  supportedCMS = document.getElementById('cms-supported');
   notSupportedAds = document.getElementById('ads-notSupported');
   notSupportedAnalytics = document.getElementById('analytics-notSupported');
-  notSupportedCMS = document.getElementById('cms-notSupported');
 
-
-  supportedAds.textContent = supportedAnalytics.textContent = 
-      supportedCMS.textContent = notSupportedAds.textContent = 
-      notSupportedAnalytics.textContent = notSupportedCMS.textContent =
+  supportedAds.textContent = supportedAnalytics.textContent =
+      notSupportedAds.textContent = notSupportedAnalytics.textContent =
       loadingMessage;
 }
 
 window.onload = function onWindowLoad() {
   supportedAds = document.getElementById('ads-supported');
   supportedAnalytics = document.getElementById('analytics-supported');
-  supportedCMS = document.getElementById('cms-supported');
   notSupportedAds = document.getElementById('ads-notSupported');
   notSupportedAnalytics = document.getElementById('analytics-notSupported');
-  notSupportedCMS = document.getElementById('cms-notSupported');
 };
 
 /**
@@ -115,9 +103,8 @@ function showSupportedVendorsInView(detectedVendors, listAllVendors) {
     return;
   }
 
-  supportedAds.textContent = supportedAnalytics.textContent = 
-      supportedCMS.textContent = notSupportedAds.textContent = 
-      notSupportedAnalytics.textContent = notSupportedCMS.textContent =
+  supportedAds.textContent = supportedAnalytics.textContent =
+      notSupportedAds.textContent = notSupportedAnalytics.textContent =
       blankMessage;
   supportedAds.appendChild(
     makeList(detectedVendors.supported.ads, false, listAllVendors)
@@ -125,26 +112,18 @@ function showSupportedVendorsInView(detectedVendors, listAllVendors) {
   supportedAnalytics.appendChild(
     makeList(detectedVendors.supported.analytics, false, listAllVendors)
   );
-  supportedCMS.appendChild(
-    makeList(detectedVendors.supported.cms, false, listAllVendors)
-  );
   notSupportedAds.appendChild(
     makeList(detectedVendors.notSupported.ads, true, listAllVendors)
   );
   notSupportedAnalytics.appendChild(
     makeList(detectedVendors.notSupported.analytics, true, listAllVendors)
   );
-  notSupportedCMS.appendChild(
-    makeList(detectedVendors.notSupported.cms, true, listAllVendors)
-  );
 
   totalTags =
     detectedVendors.supported.ads.length +
     detectedVendors.supported.analytics.length +
-    detectedVendors.supported.cms.length +
     detectedVendors.notSupported.ads.length +
-    detectedVendors.notSupported.analytics.length +
-    detectedVendors.notSupported.cms.length;
+    detectedVendors.notSupported.analytics.length;
 }
 
 /**

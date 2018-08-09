@@ -29,19 +29,15 @@ function findDetectedVendors(html, tabId) {
     totalTags =
       detectedVendors.supported.ads.length +
       detectedVendors.supported.analytics.length +
-      detectedVendors.supported.cms.length +
       detectedVendors.notSupported.ads.length +
-      detectedVendors.notSupported.analytics.length +
-      detectedVendors.notSupported.cms.length;
+      detectedVendors.notSupported.analytics.length;
 
     notSupported =
       detectedVendors.notSupported.ads.length +
-      detectedVendors.notSupported.analytics.length +
-      detectedVendors.notSupported.cms.length;
+      detectedVendors.notSupported.analytics.length;
     supported =
       detectedVendors.supported.ads.length +
-      detectedVendors.supported.analytics.length +
-      detectedVendors.supported.cms.length;
+      detectedVendors.supported.analytics.length;
 
     if (notSupported == 0 && supported > 0) {
       color = [122, 186, 122, 255];
@@ -90,12 +86,10 @@ function filteredVendors(htmlString, listAllVendors) {
     supported: {
       ads: [],
       analytics: [],
-      cms: [],
     },
     notSupported: {
       ads: [],
       analytics: [],
-      cms: [],
     },
   };
   // for all the vendor objects in the vendors.json file
@@ -113,8 +107,7 @@ function filteredVendors(htmlString, listAllVendors) {
           return;
         } else if (
           vendorConfig.category != 'Ads' &&
-          vendorConfig.category != 'Analytics' &&
-          vendorConfig.category != 'CMS'
+          vendorConfig.category != 'Analytics'
         ) {
           console.error(
             'The vendor',
@@ -172,12 +165,6 @@ function addToDict(
             filteredVendors.notSupported.ads.push(vendorName);
           }
           break;
-        case 'CMS':
-          if (isSupported(vendorName)) {
-            filteredVendors.supported.cms.push(vendorName);
-          } else {
-            filteredVendors.notSupported.cms.push(vendorName);
-          }
       }
     }
   }
@@ -197,16 +184,10 @@ function isVendorNameUnique(obj, vendorName) {
   if (obj.supported.analytics.includes(vendorName)) {
     count++;
   }
-  if (obj.supported.cms.includes(vendorName)) {
-    count++;
-  }
   if (obj.notSupported.ads.includes(vendorName)) {
     count++;
   }
   if (obj.notSupported.analytics.includes(vendorName)) {
-    count++;
-  }
-  if (obj.notSupported.cms.includes(vendorName)) {
     count++;
   }
   return count < 1;
