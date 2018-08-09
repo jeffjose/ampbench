@@ -40,6 +40,10 @@ const inspect_obj = (obj) => {return util.inspect(obj, { showHidden: true, depth
 const cheerio = require('cheerio');
 const S = require('string');
 const hasBom = require('has-bom');
+// const {URL} = require('url');
+const URL = require('url-parse');
+const mime = require('mime-types');
+const punycode = require('punycode');
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 // convenient aliases
@@ -984,6 +988,7 @@ function fetch_and_parse_url_for_amplinks(request_url, on_parsed_callback) {
         url: request_url,
         canonical_url: '',
         amphtml_url: '',
+        amphtml_urls: [],
         has_dns_prefetch: false
     };
 
@@ -1013,6 +1018,7 @@ function fetch_and_parse_url_for_amplinks(request_url, on_parsed_callback) {
                     __return.url = full_path;
                     __return.canonical_url = '';
                     __return.amphtml_url = '';
+                    __return.amphtml_urls = [];
                     __return.has_dns_prefetch = false;
                     __return.status = CHECK_FAIL;
                     http_response.http_response_body = '';
@@ -1028,10 +1034,12 @@ function fetch_and_parse_url_for_amplinks(request_url, on_parsed_callback) {
                     http_response.http_response_body = body;
                     __temp = parse_body_for_amplinks(body, http_response);
                     __return.url = full_path;
-                    __return.canonical_url = __temp.canonical_url;
-                    __return.amphtml_url = __temp.amphtml_url;
-                    __return.has_dns_prefetch = __temp.has_dns_prefetch;
-                    __return.status = CHECK_PASS; // status indicates successful fetch and parse, nothing more
+                    __return.canonical_url =    __temp.canonical_url;
+                    __return.amphtml_url =      __temp.amphtml_url;
+                    __return.amphtml_urls =     __temp.amphtml_urls;
+					__return.has_dns_prefetch = __temp.has_dns_prefetch;
+                    __return.status = __temp.amphtml_urls.length > 0 ? CHECK_WARN : CHECK_PASS;
+
                     on_parsed_callback(http_response, __return); // !!! RETURN to front-end  - - - - - - - - - - - - - - -
                 });
             };
@@ -1047,6 +1055,7 @@ function fetch_and_parse_url_for_amplinks(request_url, on_parsed_callback) {
                 __return.url = full_path;
                 __return.canonical_url = '';
                 __return.amphtml_url = '';
+                __return.amphtml_urls = [];
                 __return.has_dns_prefetch = false;
                 __return.status = CHECK_FAIL;
                 on_parsed_callback(http_response, __return); // !!! RETURN to front-end  - - - - - - - - - - - - - - - -
@@ -1057,6 +1066,7 @@ function fetch_and_parse_url_for_amplinks(request_url, on_parsed_callback) {
         __return.url = request_url;
         __return.canonical_url = '';
         __return.amphtml_url = '';
+        __return.amphtml_urls = [];
         __return.has_dns_prefetch = false;
         __return.status = CHECK_FAIL;
         http_response.http_response_body = '';
@@ -1308,6 +1318,7 @@ function check_robots_txt(validation_url, callback) {
         check_robots_txt_status = '',
         check_robots_txt_results = '',
         check_robots_txt_file_url = '',
+        check_robots_txt_file_url_404 = false,
         check_robots_txt_ua_googlebot_ok = '',
         check_robots_txt_ua_googlebot_smartphone_ok = '';
 
@@ -1319,18 +1330,23 @@ function check_robots_txt(validation_url, callback) {
             = build_result_extras
             ? check_robots_txt_results + '[' + build_result_extras + ']'
             : check_robots_txt_results;
-        if (CHECK_PASS === check_url_is_reachable_return.status) {
-            if (CHECK_PASS === check_robots_txt_ua_googlebot_ok &&
-                CHECK_PASS === check_robots_txt_ua_googlebot_smartphone_ok) {
-                check_robots_txt_status = CHECK_PASS;
-            }
+        if (check_robots_txt_file_url_404) {
+            check_robots_txt_status = CHECK_PASS;
         } else {
-            check_robots_txt_status = check_url_is_reachable_return.status;
+            if (CHECK_PASS === check_url_is_reachable_return.status) {
+                if (CHECK_PASS === check_robots_txt_ua_googlebot_ok &&
+                    CHECK_PASS === check_robots_txt_ua_googlebot_smartphone_ok) {
+                    check_robots_txt_status = CHECK_PASS;
+                }
+            } else {
+                check_robots_txt_status = check_url_is_reachable_return.status;
+            }
         }
         check_robots_txt_return = {
             check_robots_txt_status: check_robots_txt_status,
             check_robots_txt_results: check_robots_txt_results,
             check_robots_txt_file_url: check_robots_txt_file_url,
+            check_robots_txt_file_url_404: check_robots_txt_file_url_404,
             check_robots_txt_ua_googlebot_ok: check_robots_txt_ua_googlebot_ok,
             check_robots_txt_ua_googlebot_smartphone_ok: check_robots_txt_ua_googlebot_smartphone_ok,
             check_url_is_reachable_return: check_url_is_reachable_return
@@ -1359,6 +1375,7 @@ function check_robots_txt(validation_url, callback) {
 
         if (!_ret.ok) { // cannot get to the sites robots.txt
             if (_ret.http_response_code === 404) { // 404 is OK: https://developers.google.com/search/reference/robots_txt
+                check_robots_txt_file_url_404 = true;
                 check_robots_txt_ua_googlebot_ok = CHECK_PASS;
                 check_robots_txt_ua_googlebot_smartphone_ok = CHECK_PASS;
             } else {
@@ -1368,6 +1385,7 @@ function check_robots_txt(validation_url, callback) {
             build_results();
             callback(check_robots_txt_return);
         } else {
+            check_robots_txt_file_url_404 = false;
             try {
                 // https://www.npmjs.com/package/robots-parser - - - - - - - - - - - - - - - - - - - -
                 const robots = robots_parser(check_robots_txt_file_url, _ret.body);
@@ -1565,6 +1583,7 @@ function parse_page_content(http_response) {
     let __return = {
         canonical_url: '',
         amphtml_url: '',
+        amphtml_urls: [],
         http_body_sniffer: null,
         has_dns_prefetch: false,
         amp_uses_feed: http_response.urlIsGoogleAmpFeed(),
@@ -1585,6 +1604,7 @@ function parse_page_content(http_response) {
         __temp = parse_body_for_amplinks_and_robots_metatags(http_response);
         __return.canonical_url = __temp.canonical_url;
         __return.amphtml_url = __temp.amphtml_url;
+        __return.amphtml_urls = __temp.amphtml_urls;
         __return.has_dns_prefetch = __temp.has_dns_prefetch;
         __return.check_robots_meta_status = __temp.check_robots_meta_status;
         __return.check_robots_meta_result = __temp.check_robots_meta_result;
@@ -1620,6 +1640,7 @@ function parse_body_for_amplinks(body, http_response) {
     let __return = {
         canonical_url: '',
         amphtml_url: '',
+        amphtml_urls: [],
         has_dns_prefetch: false
     };
 
@@ -1647,15 +1668,17 @@ function parse_body_for_amplinks(body, http_response) {
             href = {rel: rel, url: href_url};
             if ('canonical' === rel) {
                 // only take the first occurrence
-                __return.canonical_url = '' === __return.canonical_url
+                __return.canonical_url = encodeURI('' === __return.canonical_url
                     ? href_url
-                    : __return.canonical_url;
+                    : __return.canonical_url);
             }
             if ('amphtml' === rel) {
-                // only take the first occurrence
+                // only take and keep the first occurrence
                 __return.amphtml_url = '' === __return.amphtml_url
                     ? href_url
                     : __return.amphtml_url;
+                // here save all occurrences
+                __return.amphtml_urls.push(href_url);
             }
         }
     });
@@ -1668,9 +1691,10 @@ function parse_body_for_amplinks_and_robots_metatags(http_response) {
     const
         __links = parse_body_for_amplinks(http_response.http_response_body, http_response);
     const
-        canonical_url = __links.canonical_url,
-        amphtml_url = __links.amphtml_url,
-        has_dns_prefetch = __links.has_dns_prefetch;
+        canonical_url       = __links.canonical_url,
+        amphtml_url         = __links.amphtml_url,
+        amphtml_urls        = __links.amphtml_urls,
+        has_dns_prefetch    = __links.has_dns_prefetch;
 
     let check_robots_meta_status = CHECK_PASS,
         check_robots_meta_result = '';
@@ -1717,10 +1741,11 @@ function parse_body_for_amplinks_and_robots_metatags(http_response) {
     // console.log('=> [check_robots_meta_result: ' + check_robots_meta_result + ']');
 
     return {
-        canonical_url: canonical_url,
-        amphtml_url: amphtml_url,
-        has_dns_prefetch: has_dns_prefetch,
-        amp_uses_feed: (-1 < http_response.url.indexOf('googleusercontent.com/amphtml')),
+        canonical_url:      canonical_url,
+        amphtml_url:        amphtml_url,
+        amphtml_urls:       amphtml_urls,
+        has_dns_prefetch:   has_dns_prefetch,
+        amp_uses_feed:      (-1 < http_response.url.indexOf('googleusercontent.com/amphtml')),
         check_robots_meta_status: check_robots_meta_status,
         check_robots_meta_result: check_robots_meta_result
     };
@@ -1823,7 +1848,7 @@ function parse_headers_for_if_modified_since_or_etag(http_response) {
 
     if (typeof(http_response.response.headers['if-modified-since']) === "undefined") {
         check_ims_or_etag_header.check_ims_header_result = 'Header entry for If-Modified-Since not found';
-        check_ims_or_etag_header.check_ims_header_status = CHECK_WARN;
+        check_ims_or_etag_header.check_ims_header_status = CHECK_INFO;
     } else {
         check_ims_or_etag_header.check_ims_header_result = 'Found header entry for If-Modified-Since' +
             http_response.response.headers['if-modified-since'];
@@ -1832,42 +1857,99 @@ function parse_headers_for_if_modified_since_or_etag(http_response) {
 
     if (typeof(http_response.response.headers['etag']) === "undefined") {
         check_ims_or_etag_header.check_etag_header_result = 'Header entry for ETag not found';
-        check_ims_or_etag_header.check_etag_header_status = CHECK_WARN;
+        check_ims_or_etag_header.check_etag_header_status = CHECK_INFO;
     } else {
         check_ims_or_etag_header.check_etag_header_result = 'Found header entry for ETag' +
             http_response.response.headers['etag'];
         check_ims_or_etag_header.check_etag_header_status = CHECK_PASS;
     }
 
-    if (CHECK_WARN === check_ims_or_etag_header.check_ims_header_status ||
-        CHECK_WARN === check_ims_or_etag_header.check_etag_header_status) {
-        check_ims_or_etag_header.check_ims_or_etag_header_results =
-            `[${CHECK_WARN}] Site does not support either "If-Modified-Since" or "ETag" headers: these make amp serving more efficient`;
-        check_ims_or_etag_header.check_ims_or_etag_header_status = CHECK_WARN;
-    } else {
+    if (CHECK_PASS === check_ims_or_etag_header.check_ims_header_status ||
+        CHECK_PASS === check_ims_or_etag_header.check_etag_header_status) {
         check_ims_or_etag_header.check_ims_or_etag_header_results =
             `[${CHECK_PASS}] Site supports either/or both "If-Modified-Since" and "ETag" headers: these make amp serving more efficient`;
         check_ims_or_etag_header.check_ims_or_etag_header_status = CHECK_PASS;
+    } else {
+        check_ims_or_etag_header.check_ims_or_etag_header_results =
+            `[${CHECK_WARN}] Site does not support either "If-Modified-Since" or "ETag" headers: these make amp serving more efficient`;
+        check_ims_or_etag_header.check_ims_or_etag_header_status = CHECK_WARN;
     }
 
     return check_ims_or_etag_header;
 }
 
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-// ampbench related utilities
-//
+/**
+ * Returns or fetches AMP Caches information, as documented here:
+ * https://github.com/ampproject/amphtml/issues/7259
+ */
+function get_google_amp_cache_origin_json() {
 
-function make_url_to_google_amp_cache(url) {
-    const AMP_CDN_HTTP  = 'https://cdn.ampproject.org/c/';
-    const AMP_CDN_HTTPS = 'https://cdn.ampproject.org/c/s/';
-    var url_cdn = '';
-    if (url.startsWith('http://')) {
-        url_cdn = AMP_CDN_HTTP + url.substr(7);
-    } else if (url.startsWith('https://')) {
-        url_cdn = AMP_CDN_HTTPS + url.substr(8);
-    }
-    return url_cdn;
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    // the following is for documentation only
+    // const CACHES_JSON_URL = 'https://cdn.ampproject.org/caches.json';
+    // return fetch(CACHES_JSON_URL)
+    //     .then(response => response.json())
+    //     .then(json => {
+    //         this._caches = json.caches;
+    //         return this._caches;
+    //     });
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    // hardcode the json object at: https://cdn.ampproject.org/caches.json
+    // avoiding unneccesary fetches and we only care for the Google CDN now
+    const GOOGLE_CACHE_ORIGIN_STR =
+        '{\n' +
+        '  "caches": [\n' +
+        '    {\n' +
+        '      "id": "google",\n' +
+        '      "name": "Google AMP Cache",\n' +
+        '      "docs": "https://developers.google.com/amp/cache/",\n' +
+        '      "updateCacheApiDomainSuffix": "cdn.ampproject.org"\n' +
+        '    }\n' +
+        '  ]\n' +
+        '}';
+
+    // console.log('=> [GOOGLE_CACHE_ORIGIN_STR]: ' + GOOGLE_CACHE_ORIGIN_STR);
+
+    return JSON.parse(GOOGLE_CACHE_ORIGIN_STR);
 }
+
+/**
+ * Translates an url from the origin to the AMP Cache URL format, as documented here:
+ *  https://developers.google.com/amp/cache/overview
+ *  https://ampbyexample.com/advanced/using_the_google_amp_cache/
+ *
+ * @param {String} originUrl the URL to be transformed.
+ * @return {String} the transformed URL.
+ */
+function make_url_to_google_amp_cache(url) {
+    const url_cdn = new URL(url); // see: https://www.npmjs.com/package/url-parse
+    const cache = get_google_amp_cache_origin_json();
+    const originalHostname = url_cdn.hostname;
+    let unicodeHostname = punycode.toUnicode(originalHostname);
+    unicodeHostname = unicodeHostname.replace(/-/g, '--');
+    unicodeHostname = unicodeHostname.replace(/\./g, '-');
+
+    let pathSegment = get_resource_path(url_cdn.pathname);
+    pathSegment += url_cdn.protocol === 'https:' ? '/s/' : '/';
+
+    // url_cdn.set('hostname', punycode.toASCII(unicodeHostname) + '.' + 'cdn.ampproject.org');
+    url_cdn.set('hostname', punycode.toASCII(unicodeHostname) + '.' + cache.caches[0].updateCacheApiDomainSuffix);
+    url_cdn.set('pathname', pathSegment + originalHostname + url_cdn.pathname);
+    return url_cdn.href;
+}
+
+// function make_url_to_google_amp_cache_OBSOLETE(url) {
+//     const AMP_CDN_HTTP  = 'https://cdn.ampproject.org/c/';
+//     const AMP_CDN_HTTPS = 'https://cdn.ampproject.org/c/s/';
+//     var url_cdn = '';
+//     if (url.startsWith('http://')) {
+//         url_cdn = AMP_CDN_HTTP + url.substr(7);
+//     } else if (url.startsWith('https://')) {
+//         url_cdn = AMP_CDN_HTTPS + url.substr(8);
+//     }
+//     return url_cdn;
+// }
 
 function make_url_to_google_amp_viewer(url) {
     const AMP_VIEWER_HTTP  = 'https://www.google.com/amp/';
@@ -1879,6 +1961,25 @@ function make_url_to_google_amp_viewer(url) {
         url_viewer = AMP_VIEWER_HTTPS + url.substr(8);
     }
     return url_viewer;
+}
+
+function get_resource_path(pathname) {
+    const mimetype = mime.lookup(pathname);
+    if (!mimetype) {
+        return '/c';
+    }
+
+    // console.log(mimetype);
+    if (mimetype.indexOf('image/') === 0) {
+        return '/i';
+    }
+
+    if (mimetype.indexOf('font') >= 0) {
+        return '/r';
+    }
+
+    // Default to document
+    return '/c';
 }
 
 function make_url_validate_link(url) {
@@ -2013,6 +2114,7 @@ exports.multiline_to_html = multiline_to_html;
 exports.make_url_validate_link = make_url_validate_link;
 exports.make_url_validate_href = make_url_validate_href;
 exports.make_url_href = make_url_href;
+exports.make_url_href_list = make_url_href_list;
 exports.str_encode_hard_amp = str_encode_hard_amp;
 exports.str_rtrim_char = str_rtrim_char;
 
