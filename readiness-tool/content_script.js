@@ -101,10 +101,31 @@ function filteredVendors(htmlString, listAllVendors) {
   // for all the vendor objects in the vendors.json file
   Object.keys(listAllVendors).forEach(function(vendorName) {
     let vendorConfig = listAllVendors[vendorName];
+    console.log(vendorConfig);
     // If object has a 'regex' key
-    if (vendorConfig.regex) {
-      vendorConfig.regex.forEach(function(x) {
-        if (vendorConfig.category.length == 0) {
+    var html = [];
+    var script = [];
+    var regex = [];
+    if ("html" in vendorConfig){
+      if (Array.isArray(vendorConfig.html)){
+        html = vendorConfig.html;
+      } else if (typeof vendorConfig.html === 'string'){
+        html.push(vendorConfig.html);
+      }
+    }
+    if ("script" in vendorConfig){
+      if (Array.isArray(vendorConfig.script)){
+        script = vendorConfig.script;
+      } else if (typeof vendorConfig.script === 'string'){
+        script.push(vendorConfig.script);
+      }
+    }
+    regex = html.concat(script);
+    console.log(regex);
+
+    if (regex) {
+      regex.forEach(function(x) {
+        if (vendorConfig.cats.length == 0) {
           console.error(
             'The vendor',
             vendorName,
@@ -112,9 +133,9 @@ function filteredVendors(htmlString, listAllVendors) {
           );
           return;
         } else if (
-          vendorConfig.category != 'Ads' &&
-          vendorConfig.category != 'Analytics' &&
-          vendorConfig.category != 'CMS'
+          vendorConfig.cats[0] != 1 && //CMS
+          vendorConfig.cats[0] != 10 && //Analytics
+          vendorConfig.cats[0] != 36 //Ads
         ) {
           console.error(
             'The vendor',
@@ -128,7 +149,7 @@ function filteredVendors(htmlString, listAllVendors) {
           htmlString,
           filteredVendors,
           vendorName,
-          vendorConfig.category
+          vendorConfig.cats[0]
         );
       });
     }
@@ -158,21 +179,21 @@ function addToDict(
   if (regX.test(htmlString)) {
     if (isVendorNameUnique(filteredVendors, vendorName)) {
       switch (category) {
-        case 'Analytics':
+        case 10:
           if (isSupported(vendorName)) {
             filteredVendors.supported.analytics.push(vendorName);
           } else {
             filteredVendors.notSupported.analytics.push(vendorName);
           }
           break;
-        case 'Ads':
+        case 36:
           if (isSupported(vendorName)) {
             filteredVendors.supported.ads.push(vendorName);
           } else {
             filteredVendors.notSupported.ads.push(vendorName);
           }
           break;
-        case 'CMS':
+        case 1:
           if (isSupported(vendorName)) {
             filteredVendors.supported.cms.push(vendorName);
           } else {

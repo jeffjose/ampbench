@@ -212,7 +212,8 @@
     "Google Analytics": {
       "category": "Analytics",
       "regex": [
-        "google-analytics\\.com\\/(?:ga|urchin|(analytics))\\.js"
+        "google-analytics\\.com\\/(?:ga|urchin|(analytics))\\.js",
+        "google-analytics"
       ]
     },
     "Google Tag Manager": {
@@ -612,6 +613,49 @@
       "regex":[
         "<link rel=[\"']stylesheet[\"'] [^>]+wp-(?:content|includes)",
         "<link[^>]+s\\d+\\.wp\\.com"
+      ]
+    },
+    "Magento": {
+      "category": "CMS",
+      "regex":[
+        "<script [^>]+data-requiremodule=\"mage/\\;version:2",
+        "<script [^>]+data-requiremodule=\"Magento_\\;version:2",
+        "<script type=\"text/x-magento-init\">",
+        "js/mage",
+        "skin/frontend/(?:default|(enterprise))\\;version:\\1?Enterprise:Community",
+        "static/_requirejs\\;confidence:50\\;version:2",
+        "magento"
+      ]
+    },
+    "Sitecore": {
+      "category": "CMS",
+      "regex":[
+        "<img[^>]+src=\"[^>]*/~/media/[^>]+\\.ashx"
+      ]
+    },
+    "Adobe Dynamic Tag Management": {
+      "category": "Analytics",
+      "regex":[
+        "adobedtm"
+      ],
+      "tooltip": "Recommend use of Google Tag Manager instead."
+    },
+    "Marketo": {
+      "category": "Ads",
+      "regex": [
+        "munchkin\\.marketo\\.net/munchkin\\.js"
+      ]
+    },
+    "Hotjar": {
+      "category": "Analytics",
+      "regex": [
+        "^//static\\.hotjar\\.com/c/hotjar-"
+      ]
+    },
+    "KISSmetrics": {
+      "category": "Analytics",
+      "regex": [
+        ".kissmetrics.com\\/\\w+"
       ]
     }
   }

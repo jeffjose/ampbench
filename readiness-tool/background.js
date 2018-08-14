@@ -54,12 +54,12 @@ function updateDOM(tab) {
  * Load the list of vendors and associated regexes as soon
  * as the extension comes alive. We cache this in chrome local storage.
  */
-fetch('vendors.json')
+fetch('new_vendors.json')
   .then(function(response) {
     response.json().then(function(data) {
       if (response.ok) {
         vendors = {
-          vendors: data.vendors,
+          vendors: data.apps,
         };
         chrome.storage.local.set(vendors);
       } else {
