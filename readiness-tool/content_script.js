@@ -11,6 +11,7 @@
 chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
   if (request.action == 'handleTab') {
     html = document.documentElement.innerHTML;
+    
     findDetectedVendors(html, request.tabId);
   }
 });
@@ -23,7 +24,6 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
 function findDetectedVendors(html, tabId) {
   vendors = chrome.storage.local.get('vendors', function(vendorsData) {
     vendors = vendorsData.vendors;
-
     detectedVendors = filteredVendors(html, vendors);
 
     totalTags =
@@ -101,10 +101,10 @@ function filteredVendors(htmlString, listAllVendors) {
   // for all the vendor objects in the vendors.json file
   Object.keys(listAllVendors).forEach(function(vendorName) {
     let vendorConfig = listAllVendors[vendorName];
-    console.log(vendorConfig);
     // If object has a 'regex' key
     var html = [];
     var script = [];
+    var js = [];
     var regex = [];
     if ("html" in vendorConfig){
       if (Array.isArray(vendorConfig.html)){
@@ -120,9 +120,12 @@ function filteredVendors(htmlString, listAllVendors) {
         script.push(vendorConfig.script);
       }
     }
+    if ("js" in vendorConfig){
+      Object.keys(vendorConfig.js).forEach(function(key) {
+        js.push(key);
+      })
+    }
     regex = html.concat(script);
-    console.log(regex);
-
     if (regex) {
       regex.forEach(function(x) {
         if (vendorConfig.cats.length == 0) {
@@ -134,7 +137,7 @@ function filteredVendors(htmlString, listAllVendors) {
           return;
         } else if (
           vendorConfig.cats[0] != 1 && //CMS
-          vendorConfig.cats[0] != 10 && //Analytics
+          !([10, 42].includes(vendorConfig.cats[0])) && //Analytics
           vendorConfig.cats[0] != 36 //Ads
         ) {
           console.error(
@@ -175,17 +178,20 @@ function addToDict(
   category
 ) {
   let regX = new RegExp(regexString);
-
   if (regX.test(htmlString)) {
     if (isVendorNameUnique(filteredVendors, vendorName)) {
+      console.log(vendorName + ' matched on ' + regexString);
       switch (category) {
+        //Analytics
         case 10:
+        case 42:
           if (isSupported(vendorName)) {
             filteredVendors.supported.analytics.push(vendorName);
           } else {
             filteredVendors.notSupported.analytics.push(vendorName);
           }
           break;
+        //Ads
         case 36:
           if (isSupported(vendorName)) {
             filteredVendors.supported.ads.push(vendorName);
@@ -193,6 +199,7 @@ function addToDict(
             filteredVendors.notSupported.ads.push(vendorName);
           }
           break;
+        //CMS
         case 1:
           if (isSupported(vendorName)) {
             filteredVendors.supported.cms.push(vendorName);
