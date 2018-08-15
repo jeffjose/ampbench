@@ -59,7 +59,7 @@ fetch('vendors.json')
     response.json().then(function(data) {
       if (response.ok) {
         vendors = {
-          vendors: data.vendors,
+          vendors: data.apps,
         };
         chrome.storage.local.set(vendors);
       } else {

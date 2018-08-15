@@ -11,6 +11,7 @@
 chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
   if (request.action == 'handleTab') {
     html = document.documentElement.innerHTML;
+    
     findDetectedVendors(html, request.tabId);
   }
 });
@@ -23,7 +24,6 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
 function findDetectedVendors(html, tabId) {
   vendors = chrome.storage.local.get('vendors', function(vendorsData) {
     vendors = vendorsData.vendors;
-
     detectedVendors = filteredVendors(html, vendors);
 
     totalTags =
@@ -102,9 +102,33 @@ function filteredVendors(htmlString, listAllVendors) {
   Object.keys(listAllVendors).forEach(function(vendorName) {
     let vendorConfig = listAllVendors[vendorName];
     // If object has a 'regex' key
-    if (vendorConfig.regex) {
-      vendorConfig.regex.forEach(function(x) {
-        if (vendorConfig.category.length == 0) {
+    var html = [];
+    var script = [];
+    var js = [];
+    var regex = [];
+    if ("html" in vendorConfig){
+      if (Array.isArray(vendorConfig.html)){
+        html = vendorConfig.html;
+      } else if (typeof vendorConfig.html === 'string'){
+        html.push(vendorConfig.html);
+      }
+    }
+    if ("script" in vendorConfig){
+      if (Array.isArray(vendorConfig.script)){
+        script = vendorConfig.script;
+      } else if (typeof vendorConfig.script === 'string'){
+        script.push(vendorConfig.script);
+      }
+    }
+    if ("js" in vendorConfig){
+      Object.keys(vendorConfig.js).forEach(function(key) {
+        js.push(key);
+      })
+    }
+    regex = html.concat(script);
+    if (regex) {
+      regex.forEach(function(x) {
+        if (vendorConfig.cats.length == 0) {
           console.error(
             'The vendor',
             vendorName,
@@ -112,9 +136,9 @@ function filteredVendors(htmlString, listAllVendors) {
           );
           return;
         } else if (
-          vendorConfig.category != 'Ads' &&
-          vendorConfig.category != 'Analytics' &&
-          vendorConfig.category != 'CMS'
+          vendorConfig.cats[0] != 1 && //CMS
+          !([10, 42].includes(vendorConfig.cats[0])) && //Analytics
+          vendorConfig.cats[0] != 36 //Ads
         ) {
           console.error(
             'The vendor',
@@ -128,7 +152,7 @@ function filteredVendors(htmlString, listAllVendors) {
           htmlString,
           filteredVendors,
           vendorName,
-          vendorConfig.category
+          vendorConfig.cats[0]
         );
       });
     }
@@ -154,25 +178,29 @@ function addToDict(
   category
 ) {
   let regX = new RegExp(regexString);
-
   if (regX.test(htmlString)) {
     if (isVendorNameUnique(filteredVendors, vendorName)) {
+      console.log(vendorName + ' matched on ' + regexString);
       switch (category) {
-        case 'Analytics':
+        //Analytics
+        case 10:
+        case 42:
           if (isSupported(vendorName)) {
             filteredVendors.supported.analytics.push(vendorName);
           } else {
             filteredVendors.notSupported.analytics.push(vendorName);
           }
           break;
-        case 'Ads':
+        //Ads
+        case 36:
           if (isSupported(vendorName)) {
             filteredVendors.supported.ads.push(vendorName);
           } else {
             filteredVendors.notSupported.ads.push(vendorName);
           }
           break;
-        case 'CMS':
+        //CMS
+        case 1:
           if (isSupported(vendorName)) {
             filteredVendors.supported.cms.push(vendorName);
           } else {
