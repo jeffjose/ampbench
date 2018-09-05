@@ -152,7 +152,7 @@ function filteredVendors(htmlString, listAllVendors) {
           htmlString,
           filteredVendors,
           vendorName,
-          vendorConfig.cats[0]
+          vendorConfig
         );
       });
     }
@@ -168,43 +168,43 @@ function filteredVendors(htmlString, listAllVendors) {
  * @param {FilteredVendorsDef} filteredVendors - Object separating the
  * 3P services by support
  * @param {string} vendorName - name of third party service
- * @param {string} category - the category that the key belongs to
+ * @param {string} config - the vendor config object that contains categories and image names
  */
 function addToDict(
   regexString,
   htmlString,
   filteredVendors,
   vendorName,
-  category
+  config
 ) {
   let regX = new RegExp(regexString);
   if (regX.test(htmlString)) {
     if (isVendorNameUnique(filteredVendors, vendorName)) {
       console.log(vendorName + ' matched on ' + regexString);
-      switch (category) {
+      switch (config.cats[0]) {
         //Analytics
         case 10:
         case 42:
           if (isSupported(vendorName)) {
-            filteredVendors.supported.analytics.push(vendorName);
+            filteredVendors.supported.analytics.push({"name": vendorName, "icon": config.icon});
           } else {
-            filteredVendors.notSupported.analytics.push(vendorName);
+            filteredVendors.notSupported.analytics.push({"name": vendorName, "icon": config.icon});
           }
           break;
         //Ads
         case 36:
           if (isSupported(vendorName)) {
-            filteredVendors.supported.ads.push(vendorName);
+            filteredVendors.supported.ads.push({"name": vendorName, "icon": config.icon});
           } else {
-            filteredVendors.notSupported.ads.push(vendorName);
+            filteredVendors.notSupported.ads.push({"name": vendorName, "icon": config.icon});
           }
           break;
         //CMS
         case 1:
           if (isSupported(vendorName)) {
-            filteredVendors.supported.cms.push(vendorName);
+            filteredVendors.supported.cms.push({"name": vendorName, "icon": config.icon});
           } else {
-            filteredVendors.notSupported.cms.push(vendorName);
+            filteredVendors.notSupported.cms.push({"name": vendorName, "icon": config.icon});
           }
       }
     }
@@ -218,24 +218,37 @@ function addToDict(
  * @return {boolean}
  */
 function isVendorNameUnique(obj, vendorName) {
+  console.log("Calling comparison");
   let count = 0;
-  if (obj.supported.ads.includes(vendorName)) {
-    count++;
+  for (var i in obj.supported.ads){
+    if(obj.supported.ads[i]["name"] == vendorName){
+      count++;
+    }
   }
-  if (obj.supported.analytics.includes(vendorName)) {
-    count++;
+  for (var i in obj.supported.analytics){
+    if(obj.supported.analytics[i]["name"] == vendorName){
+      count++;
+    }
   }
-  if (obj.supported.cms.includes(vendorName)) {
-    count++;
+  for (var i in obj.supported.cms){
+    if(obj.supported.cms[i]["name"] == vendorName){
+      count++;
+    }
   }
-  if (obj.notSupported.ads.includes(vendorName)) {
-    count++;
+  for (var i in obj.notSupported.ads){
+    if(obj.notSupported.ads[i]["name"] == vendorName){
+      count++;
+    }
   }
-  if (obj.notSupported.analytics.includes(vendorName)) {
-    count++;
+  for (var i in obj.notSupported.analytics){
+    if(obj.notSupported.analytics[i]["name"] == vendorName){
+      count++;
+    }
   }
-  if (obj.notSupported.cms.includes(vendorName)) {
-    count++;
+  for (var i in obj.notSupported.cms){
+  if(obj.notSupported.cms[i]["name"] == vendorName){
+      count++;
+    }
   }
   return count < 1;
 }

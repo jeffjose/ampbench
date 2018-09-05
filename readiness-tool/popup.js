@@ -173,7 +173,7 @@ function makeList(array, allowToolTips, listAllVendors) {
     // Set its contents:
     //
     img = document.createElement('img');
-    img.src = 'icons/' + array[i] + '.png';
+    img.src = 'icons/' + array[i]["icon"];
     img.style = 'width: 15px; position: relative; top: 2px;';
     item.appendChild(img);
 
@@ -183,15 +183,15 @@ function makeList(array, allowToolTips, listAllVendors) {
     //item.appendChild(img);
 
     text = document.createElement('span');
-    text.innerHTML = array[i];
+    text.innerHTML = array[i]["name"];
     text.style = 'margin-left: 8px;';
     item.appendChild(text);
 
     // Tooltip is only allowed for unsupported vendors
 
-    if (allowToolTips && listAllVendors[array[i]].tooltip != null) {
+    if (allowToolTips && listAllVendors[array[i]["name"]].tooltip != null) {
       item.className = 'tooltip';
-      item.setAttribute('data-tooltip', listAllVendors[array[i]].tooltip);
+      item.setAttribute('data-tooltip', listAllVendors[array[i]["name"]].tooltip);
     }
     // Add it to the list:
     list.appendChild(item);
