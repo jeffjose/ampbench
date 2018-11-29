@@ -56,6 +56,7 @@ if (typeof browser !== 'undefined' && typeof document.body !== 'undefined') {
   } catch (e) {
     sendMessage('log', e);
   }
+
 }
 
 function sendMessage(id, subject, callback) {
