@@ -1,5 +1,6 @@
 /** global: chrome */
 /** global: browser */
+let activeTab;
 
 const func = (tabs) => {
   (chrome || browser).runtime.sendMessage({
@@ -7,6 +8,7 @@ const func = (tabs) => {
     tab: tabs[0],
     source: 'popup.js',
   }, (response) => {
+	activeTab = tabs[0].id;
     replaceDomWhenReady(appsToDomTemplate(response));
   });
 };
@@ -73,8 +75,90 @@ $( function() {
         });
     }
   });
+  
+  /**
+   * Code conversion handler
+   */
+  $('.detected__app-convert').click(function(e) {
+	  e.preventDefault();
+	  e.stopPropagation();
+	  convertApp($(this).data('type'));
+	  console.log("Converting code for: " + $(this).data('type'))
+  });
+  
 } );
 
+var convertableApps = {},
+	convertableUrls = {};
+function setConvertableAppsAndUrls(apps, urls) {
+	convertableApps = apps;
+	convertableUrls = urls;
+}
+function convertApp(app) {
+	var template, content, matches = [];
+	var body = document.body.innerHTML;
+	console.log(typeof convertableApps[app].regex);
+	// Loop through regexes
+	var expressions = typeof convertableApps[app].regex === "string" ? [convertableApps[app].regex] : convertableApps[app].regex;
+	// Check for matches on the first regex
+	for (var i = 0; i < expressions.length; i++) {
+		// Check for data on each regex
+		var regex = new RegExp(expressions[i], ["i"]);
+		// Find pattern in every URL
+		for (url in convertableUrls) {
+			 result = regex.exec(url);
+			 // Set the template only once
+			 if (result !== null) {
+				 if (!template) {
+					 content = convertableApps[app].content;
+					 template = convertableApps[app].template;
+				 }
+				 // Add our result to the matches list
+				 matches.push(result);
+				 // break;	// stop once we find a match
+		 	 }
+		}
+		// Find pattern in the HTML (on 0 matches)
+		if (matches.length < 1) {
+			// Check for matches on the first regex
+			result = regex.exec(body);
+			console.log(result);
+			// Set the template only once
+			if (result !== null) {
+				if (!template) {
+					content = convertableApps[app].content;
+					template = convertableApps[app].template;
+				}
+				// Add our result to the matches list
+				matches.push(result);
+				// break;	// stop once we find a match
+		 	}
+		}		
+	}
+	body = null;
+	console.log(matches);
+	if (template && matches) {
+		/*
+		console.log("Found a match in: " + url);
+		console.log(html);
+		console.log(matches);
+		console.log(renderAppConversionHtml(html, matches));
+		*/
+		var html = content ? '<p class="converted-content">' + content + '</p>' : '';
+			html += '<pre>' + renderAppConversionHtml(template, matches) + '</pre>';
+			// DEBUG
+			// html += '<p class="converted-match">Match found in: ' + url + '</p>';
+		$('.converter').html(html);
+	} else {
+		alert('No matches found');
+	}
+}
+
+function renderAppConversionHtml(html, matches) {
+	//
+	return html.replace(new RegExp('\\{0\\}', 'g'), matches[0])
+		.replace(new RegExp('<', 'g'), '&lt;');
+}
 
 function replaceDomWhenReady(dom) {
   if (/complete|interactive|loaded/.test(document.readyState)) {
@@ -107,9 +191,12 @@ function appsToDomTemplate(response) {
   //Control what categories of apps we will use
   // let approved_categories = [1,5,6,10,11,32,36,41,42,52];
   let approved_categories = [1,5,6,10,11,12,16,18,32,36,41,42,52,59]; //Original set
-
+  
   if (response.tabCache && Object.keys(response.tabCache.detected).length > 0) {
     const categories = {};
+	
+	// Store external for use on click
+	setConvertableAppsAndUrls(response.convertable_apps, response.tracked_urls);
 
     // Group apps by category
     for (const appName in response.tabCache.detected) {
@@ -129,9 +216,11 @@ function appsToDomTemplate(response) {
         const confidence = response.tabCache.detected[appName].confidenceTotal;
         const version = response.tabCache.detected[appName].version;
         if(isAMPSupported(appName, response.supported_apps)){
+		  convertable = isAMPConvertable(appName, response.convertable_apps);
+		  // console.log(convertable);			
           amp_supported_apps.push(
             [
-              'a', {
+		              'a', {
                 class: 'detected__app',
                 target: '_blank',
                 href: `${response.apps[appName].website}`,
@@ -155,8 +244,15 @@ function appsToDomTemplate(response) {
                   class: 'detected__app-confidence',
                 },
                 `${confidence}% sure`,
-              ] : null,
-            ],
+              ] : null, convertable ? [
+            	'span', {
+                  class: 'detected__app-convert',
+				  title: 'Convert to AMP HTML',
+			      "data-type": appName
+                }, 
+				'</>'
+              ] : null
+			]
           );
         } else if(isAMPIncompatible(appName, response.incompatible_apps)){
           amp_not_supported_apps.push(
@@ -361,12 +457,17 @@ function appsToDomTemplate(response) {
  * @return {boolean}
  */
 function isAMPSupported(appName, supported_array) {
-  console.log("testing " + appName);
+  console.log("testing AMP support for " + appName);
   return supported_array.includes(appName);
 }
 
+function isAMPConvertable(appName, convertable_array) {
+    console.log("testing AMP convertability for " + appName);
+    return convertable_array.hasOwnProperty(appName);
+}
+
 function isAMPIncompatible(appName, incompatible_array) {
-  console.log("testing " + appName);
+  console.log("testing AMP incompatibility for " + appName);
   return incompatible_array.includes(appName);
 }
 
