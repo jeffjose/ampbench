@@ -77,3 +77,4 @@ fabric.properties
 .elasticbeanstalk/*
 !.elasticbeanstalk/*.cfg.yml
 !.elasticbeanstalk/*.global.yml
+readiness-tool/amp_readiness_tool.code-workspace
