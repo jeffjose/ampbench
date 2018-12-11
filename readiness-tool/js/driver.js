@@ -114,6 +114,8 @@ fetch('https://raw.githubusercontent.com/AliasIO/Wappalyzer/master/src/apps.json
         wappalyzer.conv_cat_tooltips = json_ext.conversionCategoryTooltips;
         wappalyzer.incom_cat_tooltips = json_ext.incompatibleCategoryTooltips;
         wappalyzer.tech_tooltips = json_ext.technologyTooltips;        
+        wappalyzer.convertable_apps = json_ext.conversionPatterns;  
+		wappalyzer.tracked_urls = {};      
     })
     .catch(error => wappalyzer.log(`GET extended_apps.json: ${error}`, 'driver', 'error'));
   })
@@ -228,7 +230,9 @@ browser.webRequest.onCompleted.addListener((request) => {
           incompatible_apps: wappalyzer.incompatible_apps,
           conv_cat_tooltips: wappalyzer.conv_cat_tooltips,
           incom_cat_tooltips: wappalyzer.incom_cat_tooltips,
-          tech_tooltips: wappalyzer.tech_tooltips
+          tech_tooltips: wappalyzer.tech_tooltips,
+  		  convertable_apps: wappalyzer.convertable_apps,
+		  tracked_urls: getUrlCache(message.tab.id)  
         };
 
         break;
@@ -253,6 +257,25 @@ browser.webRequest.onCompleted.addListener((request) => {
 });
 
 wappalyzer.driver.document = document;
+
+/**
+ * Url Caching (populated via via network.js) helpers
+ */
+const urlCache = {};
+function addUrlToRequestCache(tab, url) {
+	if (typeof urlCache[tab] === "undefined") {
+		urlCache[tab] = {};
+	}
+	urlCache[tab][url] = true;
+}
+function getUrlCache(tab) {
+	return typeof urlCache[String(tab)] !== "undefined" 
+		? urlCache[String(tab)] 
+		: {};
+}
+function clearRequestCache(tab) {
+	urlCache[tab] = null;
+}
 
 /**
  * Log messages to console

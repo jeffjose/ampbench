@@ -125,6 +125,7 @@ class Wappalyzer {
     this.conv_cat_tooltips = {};
     this.incom_cat_tooltips = {};
     this.tech_tooltips = {};
+    this.convertable_apps = {};
     this.categories = {};
     this.driver = {};
     this.jsPatterns = {};
