@@ -1,6 +1,7 @@
 /** global: chrome */
 /** global: browser */
 let activeTab;
+let pageHtml;
 
 const func = (tabs) => {
   (chrome || browser).runtime.sendMessage({
@@ -8,7 +9,8 @@ const func = (tabs) => {
     tab: tabs[0],
     source: 'popup.js',
   }, (response) => {
-	activeTab = tabs[0].id;
+    activeTab = tabs[0].id;
+    pageHtml = response.html;
     replaceDomWhenReady(appsToDomTemplate(response));
   });
 };
@@ -17,13 +19,26 @@ browser.tabs.query({ active: true, currentWindow: true })
   .then(func)
   .catch(console.error);
 
-$( function() {
+$(function() {
+   /**
+   * Handles click event on </> buttons for code conversion
+   */
+  $('.detected__app-convert').click(function(e) {
+	  e.preventDefault();
+	  e.stopPropagation();
+	  convertApp($(this).data('type'));
+	  console.log("Converting code for: " + $(this).data('type'))
+  });
+
+  /**
+   * Create tooltips for categories and technologies
+   */
   $('.container').tooltip({
     tooltipClass: "custom-ui-tooltip",
     position: { my: "right center", collision: "fit"},
     content: function() {
       htmlResult = ""
-      if ($(this).hasClass("detected__app")){
+      if ($(this).hasClass("detected__app")) {
         title = $(this).find(".detected__app-name").text()
         description = $(this).attr('data_tooltip_left')
         version = $(this).find(".detected__app-version").text()
@@ -32,12 +47,12 @@ $( function() {
                     "<span class='tooltip_title'>" + title + " " + version + "</span>"+
                     "<p class='tooltip_description'>"+description+"</p>"
       }
-      else if ($(this).hasClass("question-mark")){
+      else if ($(this).hasClass("question-mark")) {
         title = $(this).siblings(".detected__category-link").text()
         description = $(this).attr('data_tooltip_left')
         reference = $(this).attr('data_tooltip_reference')
         htmlResult = "<span class='tooltip_title'>"+title+"</span>"+
-                    "<p class='tooltip_description'>"+description+"</p>"
+                     "<p class='tooltip_description'>"+description+"</p>"
         if (reference != "null"){
           htmlResult += "<div class='tooltip_footer'><a target='_blank' href='"+reference+"'><button class='tooltip_button'>Reference</button></a></div>"  
         }    
@@ -46,10 +61,8 @@ $( function() {
     },
     items: '.tooltip',
     show: null, // show immediately
-    open: function(event, ui)
-    {
-        if (typeof(event.originalEvent) === 'undefined')
-        {
+    open: function(event, ui) {
+        if (typeof(event.originalEvent) === 'undefined'){
             return false;
         }
         
@@ -58,45 +71,29 @@ $( function() {
         // close any lingering tooltips
         $('div.ui-tooltip').not('#' + $id).remove();
         
-        // ajax function to pull in data and add it to the tooltip goes here
     },
-    close: function(event, ui)
-    {
-        ui.tooltip.hover(function()
-        {
+    close: function(event, ui) {
+        ui.tooltip.hover(function() {
             $(this).stop(true).fadeTo(400, 1); 
-        },
-        function()
-        {
-            $(this).fadeOut(400, function()
-            {
+        }, function() {
+            $(this).fadeOut(400, function() {
                 $(this).remove();
             });
         });
     }
-  });
-  
-  /**
-   * Code conversion handler
-   */
-  $('.detected__app-convert').click(function(e) {
-	  e.preventDefault();
-	  e.stopPropagation();
-	  convertApp($(this).data('type'));
-	  console.log("Converting code for: " + $(this).data('type'))
-  });
-  
-} );
+  });  
+});
 
-var convertableApps = {},
-	convertableUrls = {};
+
+var convertableApps = {}, convertableUrls = [];
 function setConvertableAppsAndUrls(apps, urls) {
 	convertableApps = apps;
-	convertableUrls = urls;
+  convertableUrls = urls;
 }
+
 function convertApp(app) {
+  
 	var template, content, matches = [];
-	var body = document.body.innerHTML;
 	console.log(typeof convertableApps[app].regex);
 	// Loop through regexes
 	var expressions = typeof convertableApps[app].regex === "string" ? [convertableApps[app].regex] : convertableApps[app].regex;
@@ -114,14 +111,16 @@ function convertApp(app) {
 					 template = convertableApps[app].template;
 				 }
 				 // Add our result to the matches list
-				 matches.push(result);
-				 // break;	// stop once we find a match
+         matches.push(result);
+         console.log("found a match in a URL");
+				 break;	// stop once we find a match
 		 	 }
 		}
 		// Find pattern in the HTML (on 0 matches)
 		if (matches.length < 1) {
-			// Check for matches on the first regex
-			result = regex.exec(body);
+      // Check for matches on the first regex
+      console.log(pageHtml)
+			result = regex.exec(pageHtml);
 			console.log(result);
 			// Set the template only once
 			if (result !== null) {
@@ -130,12 +129,12 @@ function convertApp(app) {
 					template = convertableApps[app].template;
 				}
 				// Add our result to the matches list
-				matches.push(result);
-				// break;	// stop once we find a match
+        matches.push(result);
+        console.log("found a match in the HTML");
+				break;	// stop once we find a match
 		 	}
 		}		
 	}
-	body = null;
 	console.log(matches);
 	if (template && matches) {
 		/*
@@ -156,7 +155,7 @@ function convertApp(app) {
 
 function renderAppConversionHtml(html, matches) {
 	//
-	return html.replace(new RegExp('\\{0\\}', 'g'), matches[0])
+	return html.replace(new RegExp('\\{0}\\}', 'g'), matches[0])
 		.replace(new RegExp('<', 'g'), '&lt;');
 }
 
@@ -209,7 +208,8 @@ function appsToDomTemplate(response) {
     const categories = {};
 	
 	// Store external for use on click
-	setConvertableAppsAndUrls(response.convertable_apps, response.tracked_urls);
+  setConvertableAppsAndUrls(response.convertable_apps, response.tracked_urls);
+  console.log(response.tracked_urls)
 
     // Group apps by category
     for (const appName in response.tabCache.detected) {
@@ -244,7 +244,7 @@ function appsToDomTemplate(response) {
                 }, [
                   'img', {
                     class: 'detected__app-icon',
-                    src: `../images/icons/${response.apps[appName].icon || 'default.svg'}`,
+                    src: `${locateIcon(appName, response.apps)}` ,
                   },
                 ], [
                   'span', {
@@ -282,7 +282,7 @@ function appsToDomTemplate(response) {
                 }, [
                   'img', {
                     class: 'detected__app-icon',
-                    src: `../images/icons/${response.apps[appName].icon || 'default.svg'}`,
+                    src: `${locateIcon(appName, response.apps)}` ,
                   },
                 ], [
                   'span', {
@@ -313,7 +313,7 @@ function appsToDomTemplate(response) {
                 }, [
                   'img', {
                     class: 'detected__app-icon',
-                    src: `../images/icons/${response.apps[appName].icon || 'default.svg'}`,
+                    src: `${locateIcon(appName, response.apps)}` ,
                   },
                 ], [
                   'span', {
@@ -493,12 +493,12 @@ function locateIcon(appName, app_array) {
   }
 }
 
-// var _gaq = _gaq || [];
-// _gaq.push(['_setAccount', 'UA-58015925-3']);
-// _gaq.push(['_trackPageview']);
+var _gaq = _gaq || [];
+_gaq.push(['_setAccount', 'UA-58015925-3']);
+_gaq.push(['_trackPageview']);
 
-// (function() {
-//   var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
-//   ga.src = 'https://ssl.google-analytics.com/ga.js';
-//   var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
-// })();
+(function() {
+  var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+  ga.src = 'https://ssl.google-analytics.com/ga.js';
+  var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+})();

@@ -132,6 +132,7 @@ class Wappalyzer {
     this.detected = {};
     this.hostnameCache = {};
     this.adCache = [];
+    this.pageHtml = "";
 
     this.config = {
       websiteURL: 'https://www.wappalyzer.com/',
@@ -173,7 +174,7 @@ class Wappalyzer {
       if (typeof html !== 'string') {
         html = '';
       }
-
+      this.pageHtml = html;
       const matches = data.html.match(/<html[^>]*[: ]lang="([a-z]{2}((-|_)[A-Z]{2})?)"/i);
 
       language = matches && matches.length ? matches[1] : null;
@@ -236,8 +237,7 @@ class Wappalyzer {
           if (Object.keys(apps).length) {
             this.log(`Identified ${Object.keys(apps).join(', ')} (${url.hostname})`, 'core');
           }
-          this.log(this.detected, 'zaddy');
-          this.log("HELLO THERE");
+          
           this.driver.displayApps(this.detected[url.canonical], { language }, context);
 
           return resolve();
