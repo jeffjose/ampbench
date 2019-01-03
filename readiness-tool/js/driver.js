@@ -152,6 +152,7 @@ getOption('hostnameCache', {})
 // Run content script on all tabs
 browser.tabs.query({ url: ['http://*/*', 'https://*/*'] })
   .then((tabs) => {
+    wappalyzer.log('driver', 'new tab opened');
     tabs.forEach((tab) => {
       browser.tabs.executeScript(tab.id, {
         file: '../js/content.js',

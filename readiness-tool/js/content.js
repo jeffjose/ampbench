@@ -12,7 +12,7 @@ if (typeof browser !== 'undefined' && typeof document.body !== 'undefined') {
       .slice(0, 1000).concat(html.slice(html.length - 1000))
       .map(line => line.substring(0, 1000))
       .join('\n');
-
+  
     // Scripts
     const scripts = Array.prototype.slice
       .apply(document.scripts)
@@ -28,7 +28,12 @@ if (typeof browser !== 'undefined' && typeof document.body !== 'undefined') {
     script.onload = () => {
       const onMessage = (event) => {
         if (event.data.id !== 'js') {
-          return;
+          if(event.data.id == 'new_relic'){
+            sendMessage('log', "EUREKA");
+            sendMessage('log', event.data.relic);
+          } else {
+            return;
+          }
         }
 
         removeEventListener('message', onMessage);
@@ -53,6 +58,7 @@ if (typeof browser !== 'undefined' && typeof document.body !== 'undefined') {
     script.setAttribute('src', browser.extension.getURL('js/inject.js'));
 
     document.body.appendChild(script);
+
   } catch (e) {
     sendMessage('log', e);
   }
