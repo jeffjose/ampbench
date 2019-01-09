@@ -2,6 +2,7 @@
 /** global: browser */
 let activeTab;
 let pageHtml;
+var convertableApps = {}, convertableUrls = [];
 
 const func = (tabs) => {
   (chrome || browser).runtime.sendMessage({
@@ -11,6 +12,9 @@ const func = (tabs) => {
   }, (response) => {
     activeTab = tabs[0].id;
     pageHtml = response.html;
+    // Store external for use on click
+    convertableApps = response.convertable_apps;
+    convertableUrls = response.tracked_urls;
     replaceDomWhenReady(appsToDomTemplate(response));
   });
 };
@@ -83,13 +87,6 @@ $(function() {
     }
   });  
 });
-
-
-var convertableApps = {}, convertableUrls = [];
-function setConvertableAppsAndUrls(apps, urls) {
-	convertableApps = apps;
-  convertableUrls = urls;
-}
 
 function convertApp(app) {
   
@@ -203,13 +200,9 @@ function appsToDomTemplate(response) {
   // let approved_categories = [1,5,6,10,11,32,36,41,42,52];
   let approved_categories = [1,5,6,10,11,12,16,18,32,36,41,42,52,59]; //Original set
   
+
   if (response.tabCache && Object.keys(response.tabCache.detected).length > 0) {
-    console.log(response.tabCache)
     const categories = {};
-	
-	// Store external for use on click
-  setConvertableAppsAndUrls(response.convertable_apps, response.tracked_urls);
-  console.log(response.tracked_urls)
 
     // Group apps by category
     for (const appName in response.tabCache.detected) {

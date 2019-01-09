@@ -29,11 +29,10 @@ if (typeof browser !== 'undefined' && typeof document.body !== 'undefined') {
       const onMessage = (event) => {
         if (event.data.id !== 'js') {
           if(event.data.id == 'new_relic'){
-            sendMessage('log', "EUREKA");
+            sendMessage('log', "Found New Relic Variables");
             sendMessage('log', event.data.relic);
-          } else {
-            return;
           }
+          return;
         }
 
         removeEventListener('message', onMessage);

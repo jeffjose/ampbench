@@ -267,17 +267,14 @@ const networkFilters = {
 };
 const urlCache = {};
 function addUrlToRequestCache(tab, url) {
-  wappalyzer.log("Url: " + url);
-  wappalyzer.log("Tab: " + url);
-
+  wappalyzer.log("Tab: " + tab);
 
 	if (typeof urlCache[tab] === "undefined") {
-    wappalyzer.log("New Tab: " + tab);
+    wappalyzer.log("New Tab");
 		urlCache[tab] = [];
   }
   wappalyzer.log("Adding URL: " + url);
   urlCache[tab].push(url);
-  wappalyzer.log("URLs in tab array: " + urlCache[tab]);
 
 }
 function getUrlCache(tab) {
